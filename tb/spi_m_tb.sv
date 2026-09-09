@@ -6,6 +6,7 @@ logic busy,done;
 logic cpol=0,cpha=0;
 logic [15:0]clk_div = 4;
 logic miso =0;
+logic cs, sclk, mosi;
 spi_m dut(.clk,.rst_n,.start,.tx_data,.rx_data
 ,.busy,.done,.clk_div,.cpol,.cpha,.cs,.sclk,.mosi,.miso);
 always #5 clk = ~clk;
@@ -22,7 +23,7 @@ initial begin
     $finish;
 end
 always @(posedge clk) begin
-    $display("t=%0t rst_n=%b start=%b cs=%b busy=%b done =%b",$time,rst_n,start,cd,busy,done);
+    $display("t=%0t rst_n=%b start=%b cs=%b busy=%b done =%b",$time,rst_n,start,cs,busy,done);
 end
     
 endmodule
