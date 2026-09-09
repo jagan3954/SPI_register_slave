@@ -23,7 +23,8 @@ initial begin
     $finish;
 end
 always @(posedge clk) begin
-    $display("t=%0t rst_n=%b start=%b cs=%b busy=%b done =%b",$time,rst_n,start,cs,busy,done);
+    $display("t=%0t rst_n=%b start=%b cs=%b busy=%b done =%b sclk=%b",
+    $time,rst_n,start,cs,busy,done,sclk);
 end
     
 endmodule
