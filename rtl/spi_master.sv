@@ -19,6 +19,13 @@ state_t state;
 logic [15:0] div_cnt;
 logic tick,sclk_reg;
  
+//shiftreg+bit counter
+logic [wid-1:0]tx_shift,rx_shift;
+logic [3:0]bit_count;
+
+//signals f0r edge
+logic leading_edge,trailing_edge,sample_edge,shift_edge;
+
 //divider block
 always_ff @( posedge clk or negedge rst_n ) begin
     if (!rst_n) begin
@@ -44,13 +51,22 @@ always_ff @(posedge clk or negedge rst_n ) begin
         sclk_reg<=0;
     end
     else if(state ==idle)begin
-        sclk_reg<=0;
+        //sclk_reg<=0;
+        sclk_reg<=cpol;
     end
     else begin
         sclk_reg <=~ sclk_reg;
     end
 end
 assign sclk = sclk_reg;
+
+//trailing_edge: SCLK BACK to idle level
+assign leading_edge  = tick && (sclk_reg == cpol);
+assign trailing_edge = tick && (sclk_reg != cpol);
+
+//cpha picks sampling or shifting
+assign sample_edge = cpha ? trailing_edge : leading_edge;
+assign shift_edge  = cpha ? leading_edge  : trailing_edge;
 
 
 always_ff @( posedge clk or negedge rst_n  ) begin
@@ -68,17 +84,31 @@ always_ff @( posedge clk or negedge rst_n  ) begin
             if(start)begin
                busy<=1;cs<=0;
                state<=busy_state;
+               tx_shift<=tx_data;
+               bit_count<=0;
             end
         end 
         busy_state:begin
-            if(tick && sclk_reg ==1)
+     //testing   //     if(tick && sclk_reg ==1)
+        //         state<=finish;
+        // // state<=finish;
+        // end
+            if(shift_edge)
+            tx_shift<={tx_shift[wid-2:0],1'b0}; //msb 1st
+        
+            if(sample_edge)begin
+                rx_shift<={rx_shift[wid-2:0],miso};
+                bit_count <=bit_count+1;
+                if(bit_count == wid-1)
                 state<=finish;
-        // state<=finish;
+            end
         end
         finish:begin
             cs<=1;busy<=0;done<=1;state<=idle;
+            rx_data<=rx_shift;
         end
     endcase
    end
 end 
+assign mosi = tx_shift[wid-1];
 endmodule
