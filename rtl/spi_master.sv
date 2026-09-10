@@ -12,12 +12,13 @@ module spi_m #(
     output logic cs,sclk,mosi,
     input logic miso
 );
-typedef enum logic [1:0]{idle,busy_state,finish } state_t;
+typedef enum logic [1:0]{idle,busy_state,drain,finish } state_t;
 state_t state;
 
 // clk divider sig
 logic [15:0] div_cnt;
 logic tick,sclk_reg;
+logic [3:0] drain_cnt; 
  
 //shiftreg+bit counter
 logic [wid-1:0]tx_shift,rx_shift;
@@ -95,14 +96,29 @@ always_ff @( posedge clk or negedge rst_n  ) begin
         // end
             if(shift_edge)
             tx_shift<={tx_shift[wid-2:0],1'b0}; //msb 1st
-        
+            
             if(sample_edge)begin
-                rx_shift<={rx_shift[wid-2:0],miso};
-                bit_count <=bit_count+1;
-                if(bit_count == wid-1)
-                state<=finish;
-            end
-        end
+    rx_shift<={rx_shift[wid-2:0],miso};
+    bit_count <=bit_count+1;
+    if(bit_count == wid-1)begin
+        state<=drain;
+        drain_cnt<=0;
+    end
+end
+end
+drain:begin
+    if(drain_cnt==4)
+        state<=finish;
+    else
+        drain_cnt<=drain_cnt+1;
+end
+//            if(sample_edge)begin
+//                rx_shift<={rx_shift[wid-2:0],miso};
+//                bit_count <=bit_count+1;
+//                if(bit_count == wid-1)
+//                state<=finish;
+//            end
+//        end
         finish:begin
             cs<=1;busy<=0;done<=1;state<=idle;
             rx_data<=rx_shift;
