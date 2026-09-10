@@ -9,15 +9,15 @@ module spi_s (
     input  logic cpol, cpha
 );
 
-    // ---- memory-mapped registers ----
+  //mem regers
     logic [7:0] device_id_reg;
     logic [7:0] control_reg;
     logic [7:0] status_reg;
     logic [7:0] data_reg;
 
-    initial device_id_reg = 8'hA5;   // fixed, read-only
+    initial device_id_reg = 8'hA5;   // , read-only
 
-    // ---- sync sclk into clk domain (sclk comes from another module/domain) ----
+    // clk domain
     logic sclk_d0, sclk_d1;
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -29,18 +29,16 @@ module spi_s (
         end
     end
 
-    // ---- edge detection, same trick as master ----
     logic edge_now;
     logic leading_edge, trailing_edge, sample_edge, shift_edge;
 
     assign edge_now      = (sclk_d0 != sclk_d1);
-    assign leading_edge  = edge_now && (sclk_d0 != cpol); // just left idle level
-    assign trailing_edge = edge_now && (sclk_d0 == cpol); // just returned to idle level
+    assign leading_edge  = edge_now && (sclk_d0 != cpol);
+    assign trailing_edge = edge_now && (sclk_d0 == cpol);
 
     assign sample_edge = cpha ? trailing_edge : leading_edge;
     assign shift_edge  = cpha ? leading_edge  : trailing_edge;
 
-    // ---- shift regs + protocol state ----
     logic [7:0] rx_shift, tx_shift;
     logic [3:0] bit_count;
     logic       cmd_done;
@@ -60,7 +58,6 @@ module spi_s (
             data_reg    <= 0;
         end
         else if (cs) begin
-            // deselected -> reset per-transaction state, keep register contents
             bit_count <= 0;
             cmd_done  <= 0;
         end
@@ -74,12 +71,10 @@ module spi_s (
                     bit_count <= 0;
 
                     if (!cmd_done) begin
-                        // command byte just finished
                         rw_bit     <= next_rx[7];
                         addr_field <= next_rx[6:4];
                         cmd_done   <= 1;
 
-                        // preload tx_shift now, in case master wants to read
                         case (next_rx[6:4])
                             3'd0: tx_shift <= device_id_reg;
                             3'd1: tx_shift <= control_reg;
@@ -89,12 +84,11 @@ module spi_s (
                         endcase
                     end
                     else begin
-                        // data byte just finished -> write, only if rw_bit says write
                         if (!rw_bit) begin
                             case (addr_field)
                                 3'd1: control_reg <= next_rx;
                                 3'd3: data_reg    <= next_rx;
-                                default: ; // device_id, status: read-only
+                                default: ;
                             endcase
                         end
                     end
