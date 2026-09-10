@@ -9,15 +9,13 @@ module spi_s (
     input  logic cpol, cpha
 );
 
-  //mem regers
     logic [7:0] device_id_reg;
     logic [7:0] control_reg;
     logic [7:0] status_reg;
     logic [7:0] data_reg;
 
-    initial device_id_reg = 8'hA5;   // , read-only
+    initial device_id_reg = 8'hA5;
 
-    // clk domain
     logic sclk_d0, sclk_d1;
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -98,7 +96,7 @@ module spi_s (
                 end
             end
 
-            if (shift_edge && cmd_done) begin
+            if (shift_edge && cmd_done && bit_count != 0) begin
                 tx_shift <= {tx_shift[6:0], 1'b0};
             end
         end

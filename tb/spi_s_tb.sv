@@ -68,5 +68,9 @@ module tb_spi_top;
         $display("t=%0t cs=%b sclk=%b mosi=%b miso=%b busy=%b done=%b",
                    $time, cs, sclk, mosi, miso, busy, done);
     end
+   initial begin
+    $dumpfile("spi_waveforms.vcd");
+    $dumpvars(0, tb_spi_top);
+end
 
 endmodule
